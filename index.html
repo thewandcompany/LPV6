@@ -5,20 +5,23 @@
 	<meta name="viewport" content="width=device-width">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
-	<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+	<!-- <link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'> -->
+	<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@100;200;300;400;500;600&family=Crimson+Pro:wght@300;500&display=swap" rel="stylesheet">
 	<link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
 	<link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
 	<link rel="mask-icon" href="icon/safari-pinned-tab.svg" color="#5bbad5">
-	<link rel="manifest" href="site.webmanifest">
+	<!-- <link rel="manifest" href="site.webmanifest"> -->
+	<!-- Import jQuery -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://www.puck-js.com/puck.js"></script>
 	<meta name="msapplication-TileColor" content="#da532c">
 	<meta name="theme-color" content="#0A192B">
 	<style type="text/css">
 		@font-face {
 			font-family: 'univers93BlkEx';
-			src: url('../fonts/univers-93-blackextended-webfont.woff2') format('woff2'),
-			url('../fonts/univers-93-blackextended-webfont.woff') format('woff');
+			src: url('fonts/univers-93-blackextended-webfont.woff2') format('woff2'),
+			url('fonts/univers-93-blackextended-webfont.woff') format('woff');
 			font-weight: normal;
 			font-style: normal;
 		}
@@ -30,10 +33,17 @@
 			background-color: #0A192B;
 			color: #DFE1E1;
 			margin: 20px;
+			opacity: 0;
 		}
 		.heading {
 			font-family: 'univers93BlkEx', sans-serif;
 			font-size: 36px;
+		}
+		.subheading {
+			font-family: 'Crimson Pro', serif;
+			font-size: 30px;
+			line-height: 36px;
+			font-weight: 500;
 		}
 		div {
 			padding-top:30px;
@@ -51,18 +61,129 @@
 			transform: scale(1.05);
 		}
 		.smalltext {
-			font-size: 12px;
+			font-size: 14px;
 			line-height: 16px;
+			font-family: "Barlow Semi Condensed", sans-serif;
+			font-weight: 200;
+		}
+		button {
+			background-color: #0A192B;
+			color: #DFE1E1;
+			border: 2px solid #DFE1E1;
+			padding: 10px;
+			margin: 10px 0px;
+			min-width: 100px;
+			min-height: 30px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-family: "Barlow Semi Condensed", sans-serif;
+			font-size: 16px;
+			text-transform: uppercase;
+			cursor: pointer;
+			border-radius: 0px;
+			transition: all .2s ease-in-out;
 		}
 	</style>
+	<script>
+		var connection;
+		var connectedTime;
+		var userDisconnected = false;
+		var reconnectTimer;
+		let text = {
+			connect: "Connect to watch",
+			connected: "Connected",
+			disconnect: "Disconnect from watch",
+			disconnected: "Disconnected",
+			attempting: "Attempting to connect..."
+		}
+
+		// Called when a line is received from the watch
+		function onLine(v) {
+			console.log("Received: "+JSON.stringify(v));
+		}
+
+		$(document).ready(function(){
+			$("#status").html(text.disconnected);
+			$('#connect').html(text.connect);
+			$("body").animate({opacity: 1}, 500);
+		  	$("#connect").click(function(){
+				if (connection) {
+					console.log("Disconnecting...");
+					if (reconnectTimer) clearInterval(reconnectTimer);
+					reconnectTimer = undefined;
+					userDisconnected = true;
+					connection.close();
+					connection = undefined;
+					$("#status").html(text.disconnected);
+					$('#connect').html(text.connect);
+				} else {
+					console.log("Connecting...");
+					userDisconnected = false;
+					Puck.connect(function(c) {
+						if (!c) {
+							return;
+						}
+						console.log("Connected!");
+						connection = c;
+						connectedTime = new Date();
+						$("#status").html(text.connected);
+						$('#connect').html(text.disconnect);
+						connection.on("close", function() {
+							let connectedSeconds = Math.round((new Date() - connectedTime)/100)/10;
+							console.log(`Disconnected after ${connectedSeconds} seconds`);
+							if (connectedSeconds < 1 && !userDisconnected) {
+								$("#status").html(text.attempting);
+								reconnectTimer = setInterval(function() {
+									console.log("Attempting to reconnect...");
+									connection.reconnect(function(c) {
+										if (!c) {
+											console.log("Reconnect failed");
+											return;
+										}
+										clearInterval(reconnectTimer);
+										reconnectTimer = undefined;
+										connection = c;
+										connectedTime = new Date();
+										$("#status").html(text.connected);
+										$('#connect').html(text.disconnect);
+										clearInterval(reconnectTimer);
+									});
+								}, 1000);
+								return;
+							}
+							connection = undefined;
+							$("#status").html(text.disconnected);
+							$('#connect').html(text.connect);
+						});
+						// Handle the data we get back, and call 'onLine'
+						// whenever we get a line
+						var buf = "";
+						connection.on("data", function(d) {
+							buf += d;
+							var i = buf.indexOf("\n");
+							while (i>=0) {
+								onLine(buf.substr(0,i));
+								buf = buf.substr(i+1);
+								i = buf.indexOf("\n");
+							}
+						});
+					});
+				}
+		  	});
+		});
+	</script>
 	<title>LPV6 watch tools</title>
 </head>
 <body>
 	<div class="heading">
-		WELCOME
+		STARFIELD WATCH TOOLS
 	</div>
-	<script src="https://www.puck-js.com/puck.js"></script>
-	<button onclick="Puck.write('LED1.set();\n');">On!</button>
-	<button onclick="Puck.write('LED1.reset();\n');">Off!</button>
+	<div class="smalltext">STATUS: <span id="status"></span></div>	
+	<button id="connect"></button>
+	<div class="subheading">
+		Remove whitelist
+	</div>
+	<button id="showMessage">Show message</button>
 </body>
 </html>
