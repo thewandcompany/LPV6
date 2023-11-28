@@ -216,6 +216,7 @@
 				}
 				console.log("Resetting watch")
 				connection.write("reset();\n")
+				setTimeout(connection.write("load();\n"), 500);
 		  	});				
 		  	$("#runTests").click(function(){
 				if (!connection) {
@@ -223,10 +224,8 @@
 					return;
 				}
 				console.log("Running tests")
-				connection.write("setTimeout(load, 100, 'factorytest.app.js');\n")
-				// require("Storage").list("factorytest.app.js").length
-				// console.log("Sending message");
-				// connection.write("Bangle.buzz();E.showMessage('Hello World!');\n");
+				connection.write("reset();\n")
+				setTimeout(connection.write("load('factorytest.app.js');\n"), 500);
 		  	});
 		  	$("#showFiles").click(function(){
 				if (!connection) {
@@ -253,8 +252,8 @@
 	</div> -->
 	<div id="buttons">
 		<button id="reset">Reset watch</button>
-		<button id="runTests">Run factory tests</button>
 		<button id="showFiles">Show files on watch</button>
+		<button id="runTests">Run factory tests</button>
 	</div>
 	<div id="received">
 	</div>
