@@ -131,14 +131,14 @@
 				if (!c) {
 					return;
 				}
-				console.log("Connected!");
+				console.log("Connected! "+JSON.stringify(c));
 				connection = c;
 				connectedTime = new Date();
 				$("#status").html(text.connected);
 				$('#connect').html(text.disconnect);
 				$('#buttons').css("display", "block");
 				$('#buttons').animate({opacity: 1}, 500);
-				$("#received").append("<br><br>"+new Date()+"<br>Connected to watch<br>------------------<br>");
+				$("#received").append("<br><br>"+new Date()+"<br>Connected to watch "+c.device.name+"<br>----------------------------------<br>");
 				connection.on("close", function() {
 					let connectedSeconds = Math.round((new Date() - connectedTime)/100)/10;
 					console.log(`Disconnected after ${connectedSeconds} seconds`);
@@ -215,7 +215,7 @@
 					alert("Not connected to watch");
 					return;
 				}
-				console.log("Resetting watch")
+				connection.write("console.log('Resetting watch '+NRF.getAddress());\n")
 				connection.write("reset();\n")
 				setTimeout(connection.write("load();\n"), 500);
 		  	});				
