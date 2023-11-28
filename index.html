@@ -34,6 +34,7 @@
 			color: #DFE1E1;
 			margin: 20px;
 			opacity: 0;
+			height: 100vh;
 		}
 		.heading {
 			font-family: 'univers93BlkEx', sans-serif;
@@ -84,6 +85,21 @@
 			border-radius: 0px;
 			transition: all .2s ease-in-out;
 		}
+		#buttons {
+			opacity: 0;
+			display: none;
+		}
+		#received {
+			font-family: 'Courier New', Courier, monospace;
+			font-size: 14px;
+			line-height: 16px;
+			color: #AAA;
+			border: 1px solid #444;
+			margin: 20px 0px;
+			padding: 10px;
+			height: 50%;
+			overflow-y: scroll;
+		}
 	</style>
 	<script>
 		var connection;
@@ -100,7 +116,10 @@
 
 		// Called when a line is received from the watch
 		function onLine(v) {
-			console.log("Received: "+JSON.stringify(v));
+			// console.log("Received: "+JSON.stringify(v));
+			console.log("Received: "+v);
+			$("#received").append("<br>"+v+"<br>");
+			$("#received").animate({ scrollTop: $('#received').prop("scrollHeight")}, 500);
 		}
 
 		// Connect to the watch
@@ -116,6 +135,9 @@
 				connectedTime = new Date();
 				$("#status").html(text.connected);
 				$('#connect').html(text.disconnect);
+				$('#buttons').css("display", "block");
+				$('#buttons').animate({opacity: 1}, 500);
+				$("#received").append("<br><br>"+new Date()+"<br>Connected to watch<br>------------------<br>");
 				connection.on("close", function() {
 					let connectedSeconds = Math.round((new Date() - connectedTime)/100)/10;
 					console.log(`Disconnected after ${connectedSeconds} seconds`);
@@ -142,6 +164,9 @@
 					connection = undefined;
 					$("#status").html(text.disconnected);
 					$('#connect').html(text.connect);
+					$('#buttons').animate({opacity: 0}, 500, function() {
+						$('#buttons').css("display", "none");
+					});
 				});
 				// Handle the data we get back, and call 'onLine'
 				// whenever we get a line
@@ -168,6 +193,9 @@
 			connection = undefined;
 			$("#status").html(text.disconnected);
 			$('#connect').html(text.connect);
+			$('#buttons').animate({opacity: 0}, 500, function() {
+				$('#buttons').css("display", "none");
+			});
 		}
 
 		$(document).ready(function(){
@@ -181,19 +209,34 @@
 					connect();
 				}
 		  	});
-		  	$("#showMessage").click(function(){
+			$("#reset").click(function(){
 				if (!connection) {
 					alert("Not connected to watch");
 					return;
 				}
-				connection.write("E.showMessage('Hello World!')");
+				console.log("Resetting watch")
+				connection.write("reset();\n")
+		  	});				
+		  	$("#runTests").click(function(){
+				if (!connection) {
+					alert("Not connected to watch");
+					return;
+				}
+				console.log("Running tests")
+				connection.write("setTimeout(load, 100, 'factorytest.app.js');\n")
+				// require("Storage").list("factorytest.app.js").length
+				// console.log("Sending message");
+				// connection.write("Bangle.buzz();E.showMessage('Hello World!');\n");
 		  	});
 		  	$("#showFiles").click(function(){
 				if (!connection) {
 					alert("Not connected to watch");
 					return;
 				}
-				connection.write("require('Storage').list().forEach(f=>console.log(f))");
+				console.log("Requesting files")
+				connection.write("let f=require('Storage').list();\n");
+				connection.write("let l=''; f.forEach(x=>l+=x+', '); l=l.slice(0,-2);\n");
+				connection.write("console.log('Files on watch: '+l);\n");
 		  	});
 		});
 	</script>
@@ -208,7 +251,12 @@
 	<!-- <div class="subheading">
 		Remove whitelist
 	</div> -->
-	<button id="showMessage">Show message</button>
-	<button id="showFiles">Show files on watch</button>
+	<div id="buttons">
+		<button id="reset">Reset watch</button>
+		<button id="runTests">Run factory tests</button>
+		<button id="showFiles">Show files on watch</button>
+	</div>
+	<div id="received">
+	</div>
 </body>
 </html>
