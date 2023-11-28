@@ -95,6 +95,17 @@
 			width: 90%;
 			overflow-y: scroll;
 		}
+		#receivePending {
+			font-family: 'Courier New', Courier, monospace;
+			font-size: 14px;
+			color: #AAA;
+			border: 1px solid #444;
+			margin: 20px 0px;
+			padding: 2px 10px;
+			height: 24px;
+			width: 90%;
+			overflow: hidden;
+		}
 	</style>
 	<script>
 		var connection;
@@ -172,6 +183,7 @@
 				connection.on("data", function(d) {
 					buf += d;
 					var i = buf.indexOf("\n");
+					$("#receivePending").html(buf);
 					while (i>=0) {
 						onLine(buf.substr(0,i));
 						buf = buf.substr(i+1);
@@ -208,32 +220,26 @@
 				}
 		  	});
 			$("#reset").click(function(){
-				if (!connection) {
-					alert("Not connected to watch");
-					return;
-				}
 				connection.write("console.log('Resetting watch '+NRF.getAddress());\n")
 				connection.write("reset();\n")
 				setTimeout(connection.write("load();\n"), 500);
 		  	});				
+		  	$("#showFiles").click(function(){
+				console.log("Requesting files")
+				connection.write("\x10let f=require('Storage').list();\n");
+				connection.write("\x10let l=''; f.forEach(x=>l+=x+', '); l=l.slice(0,-2);\n");
+				connection.write("\x10console.log('Files on watch: '+l);\n");
+		  	});
+			$("#reinstall").click(function(){
+				console.log("Reinstalling watch files")
+				connection.write("\x10console.log('Reinstalling files - this will take a while...');\n")
+				connection.write("\x10E.showMessage('Reinstalling...');Bangle.setLCDPower(1);Bangle.setLCDBrightness(1);\n")
+				connection.write("\x10Bangle.factoryReset();\n")
+			});
 		  	$("#runTests").click(function(){
-				if (!connection) {
-					alert("Not connected to watch");
-					return;
-				}
 				console.log("Running tests")
 				connection.write("reset();\n")
 				setTimeout(connection.write("load('factorytest.app.js');\n"), 500);
-		  	});
-		  	$("#showFiles").click(function(){
-				if (!connection) {
-					alert("Not connected to watch");
-					return;
-				}
-				console.log("Requesting files")
-				connection.write("let f=require('Storage').list();\n");
-				connection.write("let l=''; f.forEach(x=>l+=x+', '); l=l.slice(0,-2);\n");
-				connection.write("console.log('Files on watch: '+l);\n");
 		  	});
 		});
 	</script>
@@ -251,7 +257,10 @@
 	<div id="buttons">
 		<button id="reset">Reset watch</button>
 		<button id="showFiles">Show files on watch</button>
-		<button id="runTests">Run factory tests</button>
+		<button id="reinstall">Reinstall watch files</button>
+		<!-- <button id="runTests">Run factory tests</button> -->
+	</div>
+	<div id="receivePending">
 	</div>
 	<div id="received">
 	</div>
