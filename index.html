@@ -103,73 +103,97 @@
 			console.log("Received: "+JSON.stringify(v));
 		}
 
+		// Connect to the watch
+		function connect() {
+			console.log("Connecting...");
+			userDisconnected = false;
+			Puck.connect(function(c) {
+				if (!c) {
+					return;
+				}
+				console.log("Connected!");
+				connection = c;
+				connectedTime = new Date();
+				$("#status").html(text.connected);
+				$('#connect').html(text.disconnect);
+				connection.on("close", function() {
+					let connectedSeconds = Math.round((new Date() - connectedTime)/100)/10;
+					console.log(`Disconnected after ${connectedSeconds} seconds`);
+					if (connectedSeconds < 1 && !userDisconnected) {
+						$("#status").html(text.attempting);
+						reconnectTimer = setInterval(function() {
+							console.log("Attempting to reconnect...");
+							connection.reconnect(function(c) {
+								if (!c) {
+									console.log("Reconnect failed");
+									return;
+								}
+								clearInterval(reconnectTimer);
+								reconnectTimer = undefined;
+								connection = c;
+								connectedTime = new Date();
+								$("#status").html(text.connected);
+								$('#connect').html(text.disconnect);
+								clearInterval(reconnectTimer);
+							});
+						}, 1000);
+						return;
+					}
+					connection = undefined;
+					$("#status").html(text.disconnected);
+					$('#connect').html(text.connect);
+				});
+				// Handle the data we get back, and call 'onLine'
+				// whenever we get a line
+				var buf = "";
+				connection.on("data", function(d) {
+					buf += d;
+					var i = buf.indexOf("\n");
+					while (i>=0) {
+						onLine(buf.substr(0,i));
+						buf = buf.substr(i+1);
+						i = buf.indexOf("\n");
+					}
+				});
+			});			
+		}
+
+		// Disconnect from the watch
+		function disconnect() {
+			console.log("Disconnecting...");
+			if (reconnectTimer) clearInterval(reconnectTimer);
+			reconnectTimer = undefined;
+			userDisconnected = true;
+			connection.close();
+			connection = undefined;
+			$("#status").html(text.disconnected);
+			$('#connect').html(text.connect);
+		}
+
 		$(document).ready(function(){
 			$("#status").html(text.disconnected);
 			$('#connect').html(text.connect);
 			$("body").animate({opacity: 1}, 500);
 		  	$("#connect").click(function(){
 				if (connection) {
-					console.log("Disconnecting...");
-					if (reconnectTimer) clearInterval(reconnectTimer);
-					reconnectTimer = undefined;
-					userDisconnected = true;
-					connection.close();
-					connection = undefined;
-					$("#status").html(text.disconnected);
-					$('#connect').html(text.connect);
+					disconnect();
 				} else {
-					console.log("Connecting...");
-					userDisconnected = false;
-					Puck.connect(function(c) {
-						if (!c) {
-							return;
-						}
-						console.log("Connected!");
-						connection = c;
-						connectedTime = new Date();
-						$("#status").html(text.connected);
-						$('#connect').html(text.disconnect);
-						connection.on("close", function() {
-							let connectedSeconds = Math.round((new Date() - connectedTime)/100)/10;
-							console.log(`Disconnected after ${connectedSeconds} seconds`);
-							if (connectedSeconds < 1 && !userDisconnected) {
-								$("#status").html(text.attempting);
-								reconnectTimer = setInterval(function() {
-									console.log("Attempting to reconnect...");
-									connection.reconnect(function(c) {
-										if (!c) {
-											console.log("Reconnect failed");
-											return;
-										}
-										clearInterval(reconnectTimer);
-										reconnectTimer = undefined;
-										connection = c;
-										connectedTime = new Date();
-										$("#status").html(text.connected);
-										$('#connect').html(text.disconnect);
-										clearInterval(reconnectTimer);
-									});
-								}, 1000);
-								return;
-							}
-							connection = undefined;
-							$("#status").html(text.disconnected);
-							$('#connect').html(text.connect);
-						});
-						// Handle the data we get back, and call 'onLine'
-						// whenever we get a line
-						var buf = "";
-						connection.on("data", function(d) {
-							buf += d;
-							var i = buf.indexOf("\n");
-							while (i>=0) {
-								onLine(buf.substr(0,i));
-								buf = buf.substr(i+1);
-								i = buf.indexOf("\n");
-							}
-						});
-					});
+					connect();
 				}
+		  	});
+		  	$("#showMessage").click(function(){
+				if (!connection) {
+					alert("Not connected to watch");
+					return;
+				}
+				connection.write("E.showMessage('Hello World!')");
+		  	});
+		  	$("#showFiles").click(function(){
+				if (!connection) {
+					alert("Not connected to watch");
+					return;
+				}
+				connection.write("require('Storage').list().forEach(f=>console.log(f))");
 		  	});
 		});
 	</script>
@@ -181,9 +205,10 @@
 	</div>
 	<div class="smalltext">STATUS: <span id="status"></span></div>	
 	<button id="connect"></button>
-	<div class="subheading">
+	<!-- <div class="subheading">
 		Remove whitelist
-	</div>
+	</div> -->
 	<button id="showMessage">Show message</button>
+	<button id="showFiles">Show files on watch</button>
 </body>
 </html>
