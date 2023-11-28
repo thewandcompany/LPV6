@@ -114,6 +114,7 @@
 		var reconnectTimer;
 		let text = {
 			connect: "Connect to watch",
+			connecting: "Connecting...",
 			connected: "Connected",
 			disconnect: "Disconnect from watch",
 			disconnected: "Disconnected",
@@ -132,6 +133,8 @@
 		function connect() {
 			console.log("Connecting...");
 			userDisconnected = false;
+			$("#status").html(text.attempting);
+			$('#connect').html(text.connecting);
 			Puck.connect(function(c) {
 				if (!c) {
 					return;
