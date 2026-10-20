@@ -286,6 +286,12 @@
 			$("#status").html(text.disconnected);
 			$('#connect').html(text.connect);
 			$("body").animate({opacity: 1}, 500);
+			// Web Bluetooth is only in Chromium browsers (and only over https or localhost),
+			// so without it show a warning instead of letting Connect fail
+			if (!navigator.bluetooth) {
+				$("#noBluetooth").css("display", "block");
+				$("#connect").prop("disabled", true);
+			}
 			// Log each button press. This is added before the buttons' own handlers so it
 			// runs first, logging the press before any output and before the label changes.
 			$("button").not("#copyLog").click(function(){
@@ -374,6 +380,10 @@
 		STARFIELD WATCH TOOLS
 	</div>
 	<div class="smalltext">STATUS: <span id="status"></span></div>	
+	<div id="noBluetooth">
+		This browser doesn't support Web Bluetooth, so it can't connect to the watch.
+		Please try again with Chrome, Edge or Opera.
+	</div>
 	<button id="connect"></button>
 	<!-- <div class="subheading">
 		Remove whitelist

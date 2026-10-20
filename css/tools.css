@@ -66,6 +66,22 @@ button {
 	opacity: 0;
 	display: none;
 }
+#noBluetooth {
+	display: none;
+	margin: 20px 0px;
+	padding: 10px;
+	width: 90%;
+	box-sizing: border-box;
+	border: 2px solid #FF5050;
+	color: #FF5050;
+	font-family: "Barlow Semi Condensed", sans-serif;
+	font-size: 16px;
+	line-height: 20px;
+}
+button:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
 #log {
 	position: relative;
 	margin: 20px 0px;
