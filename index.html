@@ -136,7 +136,8 @@
 			if (/STUCK|FAIL|[Ee]rror|Uncaught|Interrupted|LOW_MEMORY/.test(v)) cls = "problem";
 			else if (/\bOK\b(?!\?)|No stuck buttons/.test(v)) cls = "good";
 			$("#received").append("<br>"+(cls ? `<span class="${cls}">${v}</span>` : v)+"<br>");
-			$("#received").animate({ scrollTop: $('#received').prop("scrollHeight")}, 500);
+			// stop() any scroll still in progress, so scrolls don't queue up and lag behind
+			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 		}
 
 		// Connect to the watch
