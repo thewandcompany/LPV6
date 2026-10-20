@@ -101,6 +101,9 @@
 		#received .good {
 			color: #50E050;
 		}
+		#received .listing {
+			white-space: pre;
+		}
 		#receivePending {
 			font-family: 'Courier New', Courier, monospace;
 			font-size: 14px;
@@ -127,10 +130,33 @@
 			attempting: "Attempting to connect..."
 		}
 
+		// Format the FILES: line sent by "Show files on watch" as a directory listing
+		function showFileList(json) {
+			let d = JSON.parse(json);
+			let esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+			// File names can contain control characters (StorageFile chunks end in \x01)
+			let names = d.files.map(f => f[0].replace(/[\x00-\x1f]/g, c => "\\"+c.charCodeAt(0)));
+			let num = n => n.toLocaleString("en-GB");
+			let total = d.files.reduce((t,f) => t+f[1], 0);
+			let w = Math.max(20, ...names.map(n => n.length));
+			let sw = Math.max(8, num(total).length);
+			let lines = ["Files on watch:", ""];
+			d.files.forEach((f,i) => lines.push("  "+names[i].padEnd(w)+"  "+num(f[1]).padStart(sw)+" bytes"));
+			lines.push("  "+"-".repeat(w+sw+8));
+			lines.push("  "+(d.files.length+" file"+(d.files.length==1?"":"s")).padEnd(w)+"  "+num(total).padStart(sw)+" bytes");
+			if (d.free !== null) lines.push("  "+"Free".padEnd(w)+"  "+num(d.free).padStart(sw)+" bytes");
+			$("#received").append('<br><span class="listing">'+esc(lines.join("\n"))+"</span><br>");
+		}
+
 		// Called when a line is received from the watch
 		function onLine(v) {
 			// console.log("Received: "+JSON.stringify(v));
 			console.log("Received: "+v);
+			if (v.startsWith("FILES:")) {
+				showFileList(v.substr(6));
+				$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
+				return;
+			}
 			// Highlight problems in red and successful checks in green
 			let cls = "";
 			if (/STUCK|FAIL|[Ee]rror|Uncaught|Interrupted|LOW_MEMORY/.test(v)) cls = "problem";
@@ -239,9 +265,9 @@
 		  	});				
 		  	$("#showFiles").click(function(){
 				console.log("Requesting files")
-				connection.write("\x10let f=require('Storage').list();\n");
-				connection.write("\x10let l=''; f.forEach(x=>l+=x+', '); l=l.slice(0,-2);\n");
-				connection.write("\x10console.log('Files on watch: '+l);\n");
+				// Send the names and sizes back as one JSON line, which onLine() formats as a listing
+				connection.write("\x10let S=require('Storage'),f=S.list().sort().map(n=>[n,(S.read(n)||'').length]);\n");
+				connection.write("\x10console.log('FILES:'+JSON.stringify({files:f,free:S.getFree?S.getFree():null}));\n");
 		  	});
 			$("#reinstall").click(function(){
 				console.log("Reinstalling watch files")
