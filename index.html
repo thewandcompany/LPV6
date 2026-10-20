@@ -134,7 +134,7 @@
 			// Highlight problems in red and successful checks in green
 			let cls = "";
 			if (/STUCK|FAIL|[Ee]rror|Uncaught|Interrupted|LOW_MEMORY/.test(v)) cls = "problem";
-			else if (/\bOK\b|No stuck buttons/.test(v)) cls = "good";
+			else if (/\bOK\b(?!\?)|No stuck buttons/.test(v)) cls = "good";
 			$("#received").append("<br>"+(cls ? `<span class="${cls}">${v}</span>` : v)+"<br>");
 			$("#received").animate({ scrollTop: $('#received').prop("scrollHeight")}, 500);
 		}
