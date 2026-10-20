@@ -224,7 +224,7 @@
 			$("#reset").click(function(){
 				connection.write("console.log('Resetting watch '+NRF.getAddress());\n")
 				connection.write("reset();\n")
-				setTimeout(connection.write("load();\n"), 500);
+				setTimeout(_=>connection.write("load();\n"), 500);
 		  	});				
 		  	$("#showFiles").click(function(){
 				console.log("Requesting files")
@@ -242,8 +242,8 @@
 			});
 		  	$("#runTests").click(function(){
 				console.log("Running tests")
-				connection.write("reset();\n")
-				setTimeout(connection.write("load('factorytest.app.js');\n"), 500);
+				// load() already resets the interpreter before running the app
+				connection.write("load('factorytest.app.js');\n")
 		  	});
 		});
 	</script>
