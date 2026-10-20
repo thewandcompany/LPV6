@@ -103,7 +103,7 @@
 		function uploadFile(name, data, done) {
 			// Show a progress bar in the log, updated as each chunk is sent
 			let bar = $('<span class="event"></span>');
-			$("#received").append("<br>"+timestamp()).append(bar).append("<br>");
+			$("#received").append(timestamp()).append(bar).append("<br>");
 			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 			let startTime = Date.now();
 			let num = n => n.toLocaleString("en-GB");
@@ -173,12 +173,12 @@
 			lines.push("  "+"-".repeat(w+sw+8));
 			lines.push("  "+(d.files.length+" file"+(d.files.length==1?"":"s")).padEnd(w)+"  "+num(total).padStart(sw)+" bytes");
 			if (d.free !== null) lines.push("  "+"Free".padEnd(w)+"  "+num(d.free).padStart(sw)+" bytes");
-			$("#received").append('<br>'+timestamp()+'<span class="listing">'+esc(lines.join("\n"))+"</span><br>");
+			$("#received").append(timestamp()+'<span class="listing">'+esc(lines.join("\n"))+"</span><br>");
 		}
 
 		// Add a line to the log for something done on the page, rather than sent by the watch
 		function logEvent(t) {
-			$("#received").append("<br>"+timestamp()+`<span class="event">&gt; ${esc(t)}</span><br>`);
+			$("#received").append(timestamp()+`<span class="event">&gt; ${esc(t)}</span><br>`);
 			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 		}
 
@@ -196,7 +196,7 @@
 			let cls = "";
 			if (/STUCK|FAIL|[Ee]rror|Uncaught|Interrupted|LOW_MEMORY/.test(v)) cls = "problem";
 			else if (/\bOK\b(?!\?)|No stuck buttons/.test(v)) cls = "good";
-			$("#received").append("<br>"+timestamp()+(cls ? `<span class="${cls}">${esc(v)}</span>` : esc(v))+"<br>");
+			$("#received").append(timestamp()+(cls ? `<span class="${cls}">${esc(v)}</span>` : esc(v))+"<br>");
 			// stop() any scroll still in progress, so scrolls don't queue up and lag behind
 			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 		}
@@ -229,7 +229,7 @@
 				$('#connect').html(text.disconnect);
 				$('#buttons').css("display", "block");
 				$('#buttons').animate({opacity: 1}, 500);
-				$("#received").append("<br><br>"+new Date()+"<br>Connected to watch "+c.device.name+"<br>----------------------------------<br>");
+				$("#received").append("<br>"+new Date()+"<br>Connected to watch "+c.device.name+"<br>----------------------------------<br>");
 				connection.on("close", function() {
 					let connectedSeconds = Math.round((new Date() - connectedTime)/100)/10;
 					console.log(`Disconnected after ${connectedSeconds} seconds`);
