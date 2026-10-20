@@ -20,6 +20,9 @@
 		var connectedTime;
 		var userDisconnected = false;
 		var reconnectTimer;
+		// If set, called with each line from the watch. Returning true hides the line.
+		// A handler clears this itself once it's had its line, so it can set up the next one.
+		var lineHandler;
 		let text = {
 			connect: "Connect to watch",
 			connecting: "Connecting...",
@@ -91,6 +94,60 @@
 			code.split("\n").map(l => l.trim()).filter(l => l).forEach(l => connection.write("\x10"+l+"\n"));
 		}
 
+		// Write a file to the watch's storage a chunk at a time, then call done().
+		// Characters above ASCII (like ° in factorytest.app.js) are sent as \xNN
+		// escapes, so the watch stores each one as a single byte.
+		// puck.js sends in 20 byte packets until it receives a longer packet from the
+		// watch, then sends packets that size. So first have the watch send a line long
+		// enough to fill a whole packet (onLine() hides it), and upload once it arrives.
+		function uploadFile(name, data, done) {
+			// Show a progress bar in the log, updated as each chunk is sent
+			let bar = $('<span class="event"></span>');
+			$("#received").append("<br>"+timestamp()).append(bar).append("<br>");
+			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
+			let startTime = Date.now();
+			let num = n => n.toLocaleString("en-GB");
+			let progress = sent => {
+				let w = 30, f = Math.round(w*sent/data.length);
+				let t = sent < data.length ? "" : ` in ${((Date.now()-startTime)/1000).toFixed(1)}s`;
+				bar.text(`> [${"#".repeat(f)}${"-".repeat(w-f)}] ${Math.floor(100*sent/data.length)}%  ${num(sent)} / ${num(data.length)} bytes${t}`);
+			};
+			progress(0);
+			lineHandler = l => {
+				if (!l.startsWith("MTU:")) return false;
+				lineHandler = undefined;
+				startUpload(name, data, done, progress);
+				return true;
+			};
+			connection.write("\x10console.log('MTU:'+'-'.repeat(250))\n");
+		}
+
+		function startUpload(name, data, done, progress) {
+			let lit = s => JSON.stringify(s).replace(/[\u007f-\uffff]/g, c => {
+				let n = c.charCodeAt(0);
+				return n < 256 ? "\\x"+n.toString(16).padStart(2, "0") : "\\u"+n.toString(16).padStart(4, "0");
+			});
+			let chunkSize = 1024, offset = 0;
+			let next = () => {
+				progress(Math.min(offset, data.length));
+				if (offset >= data.length) return done();
+				let line = `\x10require('Storage').write(${lit(name)},${lit(data.substr(offset, chunkSize))},${offset},${data.length});\n`;
+				offset += chunkSize;
+				connection.write(line, next);
+			};
+			next();
+		}
+
+		// CRC32 of a string of bytes, matching the watch's E.CRC32()
+		function crc32(s) {
+			let crc = -1;
+			for (let i = 0; i < s.length; i++) {
+				crc ^= s.charCodeAt(i);
+				for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1));
+			}
+			return (crc ^ -1) >>> 0;
+		}
+
 		// Escape text from the watch so it's shown as-is rather than read as HTML
 		let esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
@@ -129,6 +186,7 @@
 		function onLine(v) {
 			// console.log("Received: "+JSON.stringify(v));
 			console.log("Received: "+v);
+			if (lineHandler && lineHandler(v)) return;
 			if (v.startsWith("FILES:")) {
 				showFileList(v.substr(6));
 				$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
@@ -253,16 +311,48 @@
 				console.log("Reinstalling watch files")
 				sendToWatch(watchCommands.reinstall);
 			});
-			// "Run factory tests" is disabled for now. The firmware's built-in copy of
-			// factorytest.app.js is v0.16, in which log() calls itself recursively and
-			// runs the watch out of memory (LOW_MEMORY,MEMORY). v0.17+ fixes this, but
-			// "Reinstall watch files" restores v0.16 until the firmware is rebuilt with
-			// an up-to-date storage image (dickens_storage_default.c).
-		  	// $("#runTests").click(function(){
-			// 	console.log("Running tests")
-			// 	// load() already resets the interpreter before running the app
-			// 	connection.write("load('factorytest.app.js');\n")
-		  	// });
+			// The firmware's built-in copy of factorytest.app.js is v0.16, in which log()
+			// calls itself recursively and runs the watch out of memory (LOW_MEMORY,MEMORY).
+			// So install v0.18 from js/factorytest.app.js (apps/factorytest/factorytest.js
+			// in the DickensApps repo) before running it. "Reinstall watch files" puts
+			// v0.16 back until the firmware is rebuilt with an up-to-date storage image
+			// (dickens_storage_default.c).
+		  	$("#runTests").click(function(){
+				console.log("Installing factory tests");
+				fetch("js/factorytest.app.js").then(r => {
+					if (!r.ok) throw new Error(r.status+" "+r.statusText);
+					return r.text();
+				}).then(code => {
+					let run = () => {
+						// Update the version in factorytest.info (keeping any other fields
+						// already there) so the launcher and App Loader don't still show 0.16
+						connection.write("\x10var S=require('Storage');S.writeJSON('factorytest.info',Object.assign({id:'factorytest',name:'Factory test',src:'factorytest.app.js',icon:'factorytest.img',tags:'tool',sortorder:-9,files:'factorytest.info,factorytest.app.js,factorytest.img'},S.readJSON('factorytest.info',1),{version:'0.18'}));\n");
+						console.log("Running tests");
+						// load() already resets the interpreter before running the app
+						connection.write("load('factorytest.app.js');\n");
+					};
+					// Compare the length and CRC of the watch's copy with ours, and
+					// only upload it if they're different (or it isn't there)
+					let want = code.length+","+crc32(code);
+					lineHandler = l => {
+						if (!l.startsWith("CRC:")) return false;
+						lineHandler = undefined;
+						// trim() removes the \r from the end of the watch's \r\n
+						if (l.substr(4).trim() == want) {
+							logEvent("factorytest.app.js v0.18 is already installed");
+							run();
+							return true;
+						}
+						logEvent(`Installing factorytest.app.js v0.18 (${code.length.toLocaleString("en-GB")} bytes)...`);
+						uploadFile("factorytest.app.js", code, () => {
+							connection.write("\x10console.log('Installed factorytest.app.js - '+require('Storage').read('factorytest.app.js').length+' bytes')\n");
+							run();
+						});
+						return true;
+					};
+					connection.write("\x10var f=require('Storage').read('factorytest.app.js')||'';console.log('CRC:'+f.length+','+(E.CRC32(f)>>>0))\n");
+				}).catch(e => logEvent("Couldn't load js/factorytest.app.js: "+e.message));
+		  	});
 			$("#checkButtons").click(function(){
 				console.log("Checking buttons");
 				sendToWatch(watchCommands.checkButtons);
@@ -284,7 +374,7 @@
 		<button id="reset">Reset watch</button>
 		<button id="showFiles">Show files on watch</button>
 		<button id="reinstall">Reinstall watch files</button>
-		<!-- <button id="runTests">Run factory tests</button> - disabled, see comment in the script above -->
+		<button id="runTests">Run factory tests</button>
 		<button id="checkButtons">Check watch buttons</button>
 	</div>
 	<div id="receivePending">
