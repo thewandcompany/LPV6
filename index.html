@@ -29,10 +29,12 @@
 			attempting: "Attempting to connect..."
 		}
 
+		// Escape text from the watch so it's shown as-is rather than read as HTML
+		let esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
 		// Format the FILES: line sent by "Show files on watch" as a directory listing
 		function showFileList(json) {
 			let d = JSON.parse(json);
-			let esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 			// File names can contain control characters (StorageFile chunks end in \x01)
 			let names = d.files.map(f => f[0].replace(/[\x00-\x1f]/g, c => "\\"+c.charCodeAt(0)));
 			let num = n => n.toLocaleString("en-GB");
@@ -60,7 +62,7 @@
 			let cls = "";
 			if (/STUCK|FAIL|[Ee]rror|Uncaught|Interrupted|LOW_MEMORY/.test(v)) cls = "problem";
 			else if (/\bOK\b(?!\?)|No stuck buttons/.test(v)) cls = "good";
-			$("#received").append("<br>"+(cls ? `<span class="${cls}">${v}</span>` : v)+"<br>");
+			$("#received").append("<br>"+(cls ? `<span class="${cls}">${esc(v)}</span>` : esc(v))+"<br>");
 			// stop() any scroll still in progress, so scrolls don't queue up and lag behind
 			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 		}
@@ -125,7 +127,7 @@
 				connection.on("data", function(d) {
 					buf += d;
 					var i = buf.indexOf("\n");
-					$("#receivePending").html(buf);
+					$("#receivePending").text(buf);
 					while (i>=0) {
 						onLine(buf.substr(0,i));
 						buf = buf.substr(i+1);
