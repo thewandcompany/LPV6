@@ -240,11 +240,35 @@
 				connection.write("\x10E.showMessage('Reinstalling...');Bangle.setLCDPower(1);Bangle.setLCDBrightness(1);\n")
 				connection.write("\x10Bangle.factoryReset(0,blank);\n")
 			});
-		  	$("#runTests").click(function(){
-				console.log("Running tests")
-				// load() already resets the interpreter before running the app
-				connection.write("load('factorytest.app.js');\n")
-		  	});
+			// "Run factory tests" is disabled for now. The firmware's built-in copy of
+			// factorytest.app.js is v0.16, in which log() calls itself recursively and
+			// runs the watch out of memory (LOW_MEMORY,MEMORY). v0.17+ fixes this, but
+			// "Reinstall watch files" restores v0.16 until the firmware is rebuilt with
+			// an up-to-date storage image (dickens_storage_default.c).
+		  	// $("#runTests").click(function(){
+			// 	console.log("Running tests")
+			// 	// load() already resets the interpreter before running the app
+			// 	connection.write("load('factorytest.app.js');\n")
+		  	// });
+			$("#checkButtons").click(function(){
+				console.log("Checking buttons")
+				// Report any button that is already pressed (stuck), then light up each
+				// button's area on screen once it has been pressed and released.
+				// Passes when all four work, fails after 30 seconds, then reloads the clock.
+				[
+					"clearWatch();clearInterval();clearTimeout();if(typeof(state)=='object')state.clockMode=null;",
+					"Bangle.setLCDPower(1);Bangle.setLCDBrightness(1);Bangle.setLCDTimeout(0);",
+					"var bt=[BTN1,BTN2,BTN3,BTN4],bs=[0,0,0,0],bx=[211,211,0,0],by=[10,141,141,10];",
+					"var stuck=[];bt.forEach((b,i)=>{if(b.read())stuck.push('BTN'+(i+1));});",
+					"console.log(stuck.length?'STUCK BUTTONS: '+stuck.join(', '):'No stuck buttons - press and release each button');",
+					"g.clear().setColor(-1).setFont('6x8',2).setFontAlign(0,0).drawString('Press each',120,110).drawString('button',120,130);",
+					"var bd=i=>{g.setColor(bs[i]==3?'#0F0':bt[i].read()?'#FF0':'#444').fillRect(bx[i],by[i],bx[i]+29,by[i]+90);};",
+					"bt.forEach((b,i)=>bd(i));",
+					"var bdone=(ok,r)=>{clearWatch();clearTimeout(btT);console.log(r);g.setColor(-1).clearRect(31,100,209,140).drawString(ok?'Buttons OK':'Buttons FAIL',120,120);setTimeout(load,3000);};",
+					"var btT=setTimeout(_=>bdone(0,'BUTTON CHECK FAILED - not working: '+bs.map((s,i)=>s==3?0:'BTN'+(i+1)).filter(x=>x).join(', ')),30000);",
+					"bt.forEach((b,i)=>setWatch(e=>{bs[i]|=e.state?1:2;bd(i);console.log('BTN'+(i+1)+(e.state?' pressed':' released'));if(bs.every(s=>s==3))bdone(1,'All four buttons OK');},b,{repeat:true,edge:0,debounce:25}));"
+				].forEach(l=>connection.write("\x10"+l+"\n"));
+			});
 		});
 	</script>
 	<title>LPV6 watch tools</title>
@@ -262,7 +286,8 @@
 		<button id="reset">Reset watch</button>
 		<button id="showFiles">Show files on watch</button>
 		<button id="reinstall">Reinstall watch files</button>
-		<button id="runTests">Run factory tests</button>
+		<!-- <button id="runTests">Run factory tests</button> - disabled, see comment in the script above -->
+		<button id="checkButtons">Check watch buttons</button>
 	</div>
 	<div id="receivePending">
 	</div>
