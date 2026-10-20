@@ -87,6 +87,9 @@ button {
 #received .listing {
 	white-space: pre;
 }
+#received .time {
+	color: #666;
+}
 #receivePending {
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 14px;

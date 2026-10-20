@@ -94,6 +94,14 @@
 		// Escape text from the watch so it's shown as-is rather than read as HTML
 		let esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
+		// The current time as HH:MM:SS.mmm, to go at the start of each log line
+		function timestamp() {
+			let d = new Date();
+			let pad = (n, w) => String(n).padStart(w || 2, "0");
+			let t = pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds())+"."+pad(d.getMilliseconds(), 3);
+			return `<span class="time">${t}</span> `;
+		}
+
 		// Format the FILES: line sent by "Show files on watch" as a directory listing
 		function showFileList(json) {
 			let d = JSON.parse(json);
@@ -108,7 +116,7 @@
 			lines.push("  "+"-".repeat(w+sw+8));
 			lines.push("  "+(d.files.length+" file"+(d.files.length==1?"":"s")).padEnd(w)+"  "+num(total).padStart(sw)+" bytes");
 			if (d.free !== null) lines.push("  "+"Free".padEnd(w)+"  "+num(d.free).padStart(sw)+" bytes");
-			$("#received").append('<br><span class="listing">'+esc(lines.join("\n"))+"</span><br>");
+			$("#received").append('<br>'+timestamp()+'<span class="listing">'+esc(lines.join("\n"))+"</span><br>");
 		}
 
 		// Called when a line is received from the watch
@@ -124,7 +132,7 @@
 			let cls = "";
 			if (/STUCK|FAIL|[Ee]rror|Uncaught|Interrupted|LOW_MEMORY/.test(v)) cls = "problem";
 			else if (/\bOK\b(?!\?)|No stuck buttons/.test(v)) cls = "good";
-			$("#received").append("<br>"+(cls ? `<span class="${cls}">${esc(v)}</span>` : esc(v))+"<br>");
+			$("#received").append("<br>"+timestamp()+(cls ? `<span class="${cls}">${esc(v)}</span>` : esc(v))+"<br>");
 			// stop() any scroll still in progress, so scrolls don't queue up and lag behind
 			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 		}
