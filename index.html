@@ -232,9 +232,11 @@
 		  	});
 			$("#reinstall").click(function(){
 				console.log("Reinstalling watch files")
-				connection.write("\x10console.log('Reinstalling files - this will take a while...');\n")
+				connection.write("\x10var f=require('Flash'); var blank=f.read(4,0x60000000)==[255,255,255,255] && f.read(4,(245-80)*4096)==[255,255,255,255];\n")
+				connection.write("\x10console.log(`Flash storage is ${blank?'':'not'} blank`);\n")
+				connection.write("\x10console.log(`Reinstalling files - this will take around ${blank?'50':'80'} seconds...`);\n")
 				connection.write("\x10E.showMessage('Reinstalling...');Bangle.setLCDPower(1);Bangle.setLCDBrightness(1);\n")
-				connection.write("\x10Bangle.factoryReset();\n")
+				connection.write("\x10Bangle.factoryReset(0,blank);\n")
 			});
 		  	$("#runTests").click(function(){
 				console.log("Running tests")
