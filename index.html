@@ -166,6 +166,15 @@
 			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
 		}
 
+		// Show the disconnected status and fade out the tool buttons
+		function showDisconnected() {
+			$("#status").html(text.disconnected);
+			$('#connect').html(text.connect);
+			$('#buttons').animate({opacity: 0}, 500, function() {
+				$('#buttons').css("display", "none");
+			});
+		}
+
 		// Connect to the watch
 		function connect() {
 			console.log("Connecting...");
@@ -204,17 +213,12 @@
 								connectedTime = new Date();
 								$("#status").html(text.connected);
 								$('#connect').html(text.disconnect);
-								clearInterval(reconnectTimer);
 							});
 						}, 1000);
 						return;
 					}
 					connection = undefined;
-					$("#status").html(text.disconnected);
-					$('#connect').html(text.connect);
-					$('#buttons').animate({opacity: 0}, 500, function() {
-						$('#buttons').css("display", "none");
-					});
+					showDisconnected();
 				});
 				// Handle the data we get back, and call 'onLine'
 				// whenever we get a line
@@ -240,11 +244,7 @@
 			userDisconnected = true;
 			connection.close();
 			connection = undefined;
-			$("#status").html(text.disconnected);
-			$('#connect').html(text.connect);
-			$('#buttons').animate({opacity: 0}, 500, function() {
-				$('#buttons').css("display", "none");
-			});
+			showDisconnected();
 		}
 
 		$(document).ready(function(){
