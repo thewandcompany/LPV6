@@ -66,17 +66,36 @@ button {
 	opacity: 0;
 	display: none;
 }
+#log {
+	position: relative;
+	margin: 20px 0px;
+	padding: 0px;
+	height: 40%;
+	width: 90%;
+}
 #received {
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 14px;
 	line-height: 16px;
 	color: #AAA;
 	border: 1px solid #444;
-	margin: 20px 0px;
+	box-sizing: border-box;
 	padding: 10px;
-	height: 40%;
-	width: 90%;
+	height: 100%;
+	width: 100%;
 	overflow-y: scroll;
+}
+#copyLog {
+	position: absolute;
+	right: 24px;
+	bottom: 8px;
+	margin: 0px;
+	padding: 4px 8px;
+	min-width: 0px;
+	min-height: 0px;
+	font-size: 12px;
+	border-width: 1px;
+	opacity: 0.8;
 }
 #received .problem {
 	color: #FF5050;

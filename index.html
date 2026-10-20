@@ -288,8 +288,16 @@
 			$("body").animate({opacity: 1}, 500);
 			// Log each button press. This is added before the buttons' own handlers so it
 			// runs first, logging the press before any output and before the label changes.
-			$("button").click(function(){
+			$("button").not("#copyLog").click(function(){
 				logEvent(`Pressed "${$(this).text()}"`);
+			});
+			// Copy the log as plain text, e.g. to paste into an email
+			$("#copyLog").click(function(){
+				navigator.clipboard.writeText($("#received")[0].innerText.trim()).then(() => {
+					$(this).text("Copied");
+				}, () => {
+					$(this).text("Couldn't copy");
+				}).then(() => setTimeout(() => $(this).text("Copy log"), 1500));
 			});
 		  	$("#connect").click(function(){
 				if (connection) {
@@ -379,7 +387,10 @@
 	</div>
 	<div id="receivePending">
 	</div>
-	<div id="received">
+	<div id="log">
+		<div id="received">
+		</div>
+		<button id="copyLog">Copy log</button>
 	</div>
 </body>
 </html>
