@@ -90,6 +90,9 @@ button {
 #received .time {
 	color: #666;
 }
+#received .event {
+	color: #6CB4FF;
+}
 #receivePending {
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 14px;

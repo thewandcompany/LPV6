@@ -119,6 +119,12 @@
 			$("#received").append('<br>'+timestamp()+'<span class="listing">'+esc(lines.join("\n"))+"</span><br>");
 		}
 
+		// Add a line to the log for something done on the page, rather than sent by the watch
+		function logEvent(t) {
+			$("#received").append("<br>"+timestamp()+`<span class="event">&gt; ${esc(t)}</span><br>`);
+			$("#received").stop().animate({ scrollTop: $('#received').prop("scrollHeight")}, 100);
+		}
+
 		// Called when a line is received from the watch
 		function onLine(v) {
 			// console.log("Received: "+JSON.stringify(v));
@@ -222,6 +228,11 @@
 			$("#status").html(text.disconnected);
 			$('#connect').html(text.connect);
 			$("body").animate({opacity: 1}, 500);
+			// Log each button press. This is added before the buttons' own handlers so it
+			// runs first, logging the press before any output and before the label changes.
+			$("button").click(function(){
+				logEvent(`Pressed "${$(this).text()}"`);
+			});
 		  	$("#connect").click(function(){
 				if (connection) {
 					disconnect();
