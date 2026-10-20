@@ -137,6 +137,8 @@
 			$('#connect').html(text.connecting);
 			Puck.connect(function(c) {
 				if (!c) {
+					$("#status").html(text.disconnected);
+					$('#connect').html(text.connect);
 					return;
 				}
 				console.log("Connected! "+JSON.stringify(c));
