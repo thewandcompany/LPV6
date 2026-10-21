@@ -83,10 +83,8 @@ button:disabled {
 	cursor: not-allowed;
 }
 #log {
-	position: relative;
 	margin: 20px 0px;
 	padding: 0px;
-	height: 40%;
 	width: 90%;
 }
 #received {
@@ -97,15 +95,13 @@ button:disabled {
 	border: 1px solid #444;
 	box-sizing: border-box;
 	padding: 10px;
-	height: 100%;
+	height: 40vh;
 	width: 100%;
 	overflow-y: scroll;
 }
 #copyLog {
-	position: absolute;
-	right: 24px;
-	bottom: 8px;
-	margin: 0px;
+	display: block;
+	margin: 6px 0px 0px auto;
 	padding: 4px 8px;
 	min-width: 0px;
 	min-height: 0px;
